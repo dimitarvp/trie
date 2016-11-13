@@ -6,14 +6,40 @@ defmodule Trie do
   structure)](https://en.wikipedia.org/wiki/Trie).
 
   It's a recursive node structure with 3 fields:
-  1. `key`: an integer representing a character. When traversing the `Trie`
-     you can compose the word you are looking for by traversing the nodes
-     recursively.
-  2. `children`: a `Map` of `integer` keys (a character) and `Trie` values.
+  1. `key`: an integer representing a character. You can compose a word you are
+     looking for by traversing the `Trie` nodes recursively and appending all
+     characters along the way.
+  2. `children`: a `Map` of `integer` keys (Unicode characters) and `Trie`
+     nodes.
   3. `count`: amount of times the full word has been added to this `Trie` node.
-     Useful for word counting or weighted NLP.
+     Useful for word counting or weighted NLP. A count greater than zero is
+     considered to be a form of a word terminator (see the example below).
 
-  The root of any `Trie` has a `nil` key and a zero count.
+  The root of any `Trie` always has a `nil` key and a zero count.
+
+  Example:
+
+  Given the words `["ten", "tons", "tea"]` loaded with counts of `[2, 3, 4]`,
+  a `Trie` will look like this (counts given at the start of each line):
+
+  <pre>
+  (0) -t
+  (0)  -e
+  (4)   -a
+  (2)   -n
+  (0)  -o
+  (0)   -n
+  (3)    -s
+  </pre>
+
+  Please note how only the end of the word has a count associated with the
+  appropriate `Trie` node. This gives you a differentation between words that
+  are explicitly loaded vs. the words that can be automatically inferred by
+  doing a full recursive visit of the `Trie`. In this particular example you
+  would know that only the words `tea`, `ten` and `tons` are explicitly loaded
+  while conversely, the words `t`, `te`, `to` and `ton` are not. You still
+  have access to all of them but you can process them differently if your need
+  calls for it.
 
   Implemented behaviors:
   - `Access`
@@ -213,6 +239,9 @@ defmodule Trie do
 
       iex> Trie.words(Trie.load("inn"))
       "inn\n"
+
+      iex> Trie.words(%Trie{})
+      []
 
   In the first example, `["i", "in", "inn"]` are separate words and each
   `Trie` along the way has a count of one, thus they are all printed.
