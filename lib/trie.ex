@@ -201,4 +201,39 @@ defmodule Trie do
     modified_trie = %Trie{t | children: Map.put(t.children, head, new_val)}
     {old_val, modified_trie}
   end
+
+  @doc ~S"""
+  Returns a `String` containing one word per line. A `Trie` node is considered
+  a word terminator when its `count` field is greater than zero.
+
+  ## Examples
+
+      iex> Trie.words(Trie.load_multiple(["i", "in", "inn"]))
+      "i\nin\ninn\n"
+
+      iex> Trie.words(Trie.load("inn"))
+      "inn\n"
+
+  In the first example, `["i", "in", "inn"]` are separate words and each
+  `Trie` along the way has a count of one, thus they are all printed.
+
+  In the second example, only the word `"inn"` is loaded and thus all the
+  `Trie` nodes along the way are not printed because they have a count of zero,
+  thus only `"inn"` is printed.
+  """
+  def words(%Trie{} = t, prefix \\ '') do
+    Enum.reduce(t.children, '', fn({_key,child}, acc) ->
+      Enum.join [
+        acc,
+        if child.count > 0 do
+          Enum.join([prefix,
+                     [child.key],
+                     '\n',
+                     words(child, prefix ++ [child.key])])
+        else
+          words(child, prefix ++ [child.key])
+        end
+      ]
+    end)
+  end
 end
