@@ -10,7 +10,7 @@ defmodule Trie.Mixfile do
      deps: deps(),
 
      test_coverage: [tool: Coverex.Task],
-     dialyzer: [plt_add_deps: :app_true]
+     dialyzer: [plt_add_deps: :app_tree]
     ]
   end
 
