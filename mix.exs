@@ -9,7 +9,8 @@ defmodule Trie.Mixfile do
      start_permanent: Mix.env == :prod,
      deps: deps(),
 
-     test_coverage: [tool: Coverex.Task]
+     test_coverage: [tool: Coverex.Task],
+     dialyzer: [plt_add_deps: :app_true]
     ]
   end
 
