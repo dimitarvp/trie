@@ -11,16 +11,23 @@ defmodule Trie do
      characters along the way.
   2. `children`: a `Map` of `integer` keys (Unicode characters) and `Trie`
      nodes.
-  3. `count`: amount of times the full word has been added to this `Trie` node.
-     Useful for word counting or weighted NLP. A count greater than zero is
-     considered to be a form of a word terminator (see the example below).
+  3. `usage_count`: amount of times the full word has been added to this `Trie`
+     node. Useful for word counting or weighted NLP. A usage count greater
+     than zero is considered to be a form of a word terminator (see the
+     example below).
+  4. `leaf_count`: caches the full recursive count of leaves under this node.
+     In the example below, the "t" node has a `leaf_count` of 3, the "o" has 1,
+     and the "e" node has 2.
 
-  The root of any `Trie` always has a `nil` key and a zero count.
+  The root of a newly constructed `Trie` always has a `nil` key.
 
   Example:
 
-  Given the words `["ten", "tons", "tea"]` loaded with counts of `[2, 3, 4]`,
-  a `Trie` will look like this (counts given at the start of each line):
+  Given the words `["ten", "tons", "tea"]` loaded with usage counts of
+  `[2, 3, 4]` (which means the word `ten` has been used 2 times in the input
+  text, the word `tons` has been used three times, and the word `tea` -- 4
+  times), a `Trie` will look like this (`usage_count` given at the start of
+  each line):
 
   <pre>
   (0) -t
@@ -32,14 +39,13 @@ defmodule Trie do
   (3)    -s
   </pre>
 
-  Please note how only the end of the word has a count associated with the
-  appropriate `Trie` node. This gives you a differentation between words that
-  are explicitly loaded vs. the words that can be automatically inferred by
-  doing a full recursive visit of the `Trie`. In this particular example you
-  would know that only the words `tea`, `ten` and `tons` are explicitly loaded
-  while conversely, the words `t`, `te`, `to` and `ton` are not. You still
-  have access to all of them but you can process them differently if your need
-  calls for it.
+  *PLEASE NOTE*: only the end of the word has a count associated with the
+  appropriate `Trie` node. The `usage_count` field of each `Trie` node gives
+  you a differentation between words that are explicitly loaded vs. the words
+  that can be automatically inferred by doing a full recursive visit. In this
+  particular example you would know that only the words `tea`, `ten` and
+  `tons` are explicitly loaded while conversely, the words `t`, `te`, `to` and
+  `ton` are not.
 
   Implemented behaviors:
   - `Access`
@@ -47,9 +53,12 @@ defmodule Trie do
 
   @type key :: char
   @type val :: map
-  @type t :: %Trie{key: key, children: val, count: integer}
+  @type t :: %Trie{key: key,
+                   children: val,
+                   usage_count: integer,
+                   leaf_count: integer}
 
-  defstruct key: nil, children: %{}, count: 0
+  defstruct key: nil, children: %{}, usage_count: 0, leaf_count: 0
 
   @doc ~S"""
   Convenience function: it invokes `add/3` on a brand new `Trie` object it
@@ -57,17 +66,17 @@ defmodule Trie do
   in the word.
   """
   @spec load(charlist|binary, integer) :: t
-  def load(word, count \\ 1)
+  def load(word, usage_count \\ 1)
 
-  def load(word, count) when is_list(word) do
-    load(List.to_string(word), count)
+  def load(word, usage_count) when is_list(word) do
+    load(List.to_string(word), usage_count)
   end
 
-  def load(word, count) when is_binary(word) do
+  def load(word, usage_count) when is_binary(word) do
     if not String.printable?(word) do
       raise(ArgumentError, "the parameter must be printable")
     end
-    add(%Trie{}, word, count)
+    add(%Trie{}, word, usage_count)
   end
 
   @doc ~S"""
@@ -94,25 +103,25 @@ defmodule Trie do
   friends. Consult the documentation of `Access` for more details.
   """
   @spec add(t, charlist|binary, integer) :: t
-  def add(t, word, count \\ 1)
+  def add(t, word, usage_count \\ 1)
 
-  def add(%Trie{} = t, word, count) when is_binary(word) do
-    add(t, to_char_list(word), count)
+  def add(%Trie{} = t, word, usage_count) when is_binary(word) do
+    add(t, to_char_list(word), usage_count)
   end
 
-  def add(%Trie{} = t, [head | tail], count) do
+  def add(%Trie{} = t, [head | tail], usage_count) do
     child = Map.get(t.children, head) || %Trie{key: head}
-    child = add(child, tail, count)
+    child = add(child, tail, usage_count)
     children = Map.put(t.children, head, child)
     %Trie{t | children: children}
   end
 
-  def add(%Trie{} = t, [], count) do
-    %Trie{t | count: t.count + count}
+  def add(%Trie{} = t, [], usage_count) do
+    %Trie{t | usage_count: t.usage_count + usage_count}
   end
 
-  def add(nil, _text, _count), do: nil
-  def add(%Trie{} = t, nil, _count), do: t
+  def add(nil, _text, _usage_count), do: nil
+  def add(%Trie{} = t, nil, _usage_count), do: t
 
   @doc ~S"""
   Implements the callback `c:Access.fetch/2`.
@@ -230,7 +239,7 @@ defmodule Trie do
 
   @doc ~S"""
   Returns a `String` containing one word per line. A `Trie` node is considered
-  a word terminator when its `count` field is greater than zero.
+  a word terminator when its `usage_count` field is greater than zero.
 
   ## Examples
 
@@ -244,17 +253,18 @@ defmodule Trie do
       []
 
   In the first example, `["i", "in", "inn"]` are separate words and each
-  `Trie` along the way has a count of one, thus they are all printed.
+  `Trie` along the way has a `usage_count` equal to one, thus they are all
+  printed.
 
   In the second example, only the word `"inn"` is loaded and thus all the
-  `Trie` nodes along the way are not printed because they have a count of zero,
-  thus only `"inn"` is printed.
+  `Trie` nodes along the way are not printed because they have a `usage_count`
+  equalling zero, thus only `"inn"` is printed.
   """
   def words(%Trie{} = t, prefix \\ '') do
     Enum.reduce(t.children, '', fn({_key,child}, acc) ->
       Enum.join [
         acc,
-        if child.count > 0 do
+        if child.usage_count > 0 do
           Enum.join([prefix,
                      [child.key],
                      '\n',
