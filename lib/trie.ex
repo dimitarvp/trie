@@ -308,7 +308,7 @@ defmodule Trie do
             |> Enum.reverse()
             |> to_string()
 
-          {[], [new_word | words]}
+          {[key | word], [new_word | words]}
 
         _ ->
           if is_nil(key) do

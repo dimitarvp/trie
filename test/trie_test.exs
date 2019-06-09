@@ -31,7 +31,18 @@ defmodule TrieTest do
   end
 
   test "words function returns the originally loaded words" do
-    words = ["damn", "dang", "hello", "helm", "hey", "hi", "oh", "ohh", "ohhhhhh"]
+    words = [
+      "damn",
+      "dang",
+      "hello",
+      "helm",
+      "hey",
+      "hi",
+      "oh",
+      "ohh",
+      "ohhhhhh"
+    ]
+
     t = Trie.put_words(words)
     assert Enum.sort(Trie.words(t)) == Enum.sort(words)
   end
