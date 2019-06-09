@@ -55,13 +55,13 @@ defmodule Trie do
   - `Access`
   """
 
-  @type key :: char
-  @type val :: map
+  @type key :: char | nil
+  @type children :: %{required(key) => t} | %{}
   @type t :: %Trie{
           key: key,
-          children: val,
-          frequency: integer,
-          word_count: integer
+          children: children,
+          frequency: non_neg_integer,
+          word_count: non_neg_integer
         }
 
   defstruct key: nil, children: %{}, frequency: 0, word_count: 0
