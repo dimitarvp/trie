@@ -342,4 +342,19 @@ defmodule Trie do
       end
     )
   end
+
+  @spec search(t, charlist | binary) :: [binary]
+
+  def search(%__MODULE__{} = t, prefix) when is_binary(prefix) do
+    cut_prefix = String.slice(prefix, 0..-2)
+    sub_trie = get(t, prefix) || %__MODULE__{}
+
+    sub_trie
+    |> words()
+    |> Enum.map(&(cut_prefix <> &1))
+  end
+
+  def search(%__MODULE__{} = t, prefix) when is_list(prefix) do
+    search(t, to_string(prefix))
+  end
 end

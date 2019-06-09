@@ -47,6 +47,103 @@ defmodule TrieTest do
     assert Enum.sort(Trie.words(t)) == Enum.sort(words)
   end
 
+  test "searching with existing string prefixes" do
+    words = [
+      "damn",
+      "dang",
+      "hello",
+      "helm",
+      "hey",
+      "hi",
+      "oh",
+      "ohh",
+      "ohhhhhh"
+    ]
+
+    t = Trie.put_words(words)
+
+    assert Enum.sort(Trie.search(t, "h")) ==
+             Enum.sort(["hi", "hey", "helm", "hello"])
+
+    assert Enum.sort(Trie.search(t, "he")) ==
+             Enum.sort(["hey", "helm", "hello"])
+
+    assert Enum.sort(Trie.search(t, "hel")) ==
+             Enum.sort(["helm", "hello"])
+
+    assert Enum.sort(Trie.search(t, "d")) ==
+             Enum.sort(["dang", "damn"])
+
+    assert Enum.sort(Trie.search(t, "da")) ==
+             Enum.sort(["dang", "damn"])
+
+    assert Enum.sort(Trie.search(t, "dam")) == ["damn"]
+
+    assert Enum.sort(Trie.search(t, "dan")) == ["dang"]
+
+    assert Enum.sort(Trie.search(t, "o")) ==
+             Enum.sort(["ohhhhhh", "ohh", "oh"])
+
+    assert Enum.sort(Trie.search(t, "oh")) ==
+             Enum.sort(["ohhhhhh", "ohh", "oh"])
+
+    assert Enum.sort(Trie.search(t, "ohh")) ==
+             Enum.sort(["ohhhhhh", "ohh"])
+
+    assert Enum.sort(Trie.search(t, "ohhh")) == ["ohhhhhh"]
+  end
+
+  test "searching with existing charlist prefixes" do
+    words = [
+      "damn",
+      "dang",
+      "hello",
+      "helm",
+      "hey",
+      "hi",
+      "oh",
+      "ohh",
+      "ohhhhhh"
+    ]
+
+    t = Trie.put_words(words)
+
+    assert Enum.sort(Trie.search(t, 'h')) ==
+             Enum.sort(["hi", "hey", "helm", "hello"])
+
+    assert Enum.sort(Trie.search(t, 'he')) ==
+             Enum.sort(["hey", "helm", "hello"])
+
+    assert Enum.sort(Trie.search(t, 'hel')) ==
+             Enum.sort(["helm", "hello"])
+
+    assert Enum.sort(Trie.search(t, 'd')) ==
+             Enum.sort(["dang", "damn"])
+
+    assert Enum.sort(Trie.search(t, 'da')) ==
+             Enum.sort(["dang", "damn"])
+
+    assert Enum.sort(Trie.search(t, 'dam')) == ["damn"]
+
+    assert Enum.sort(Trie.search(t, 'dan')) == ["dang"]
+
+    assert Enum.sort(Trie.search(t, 'o')) ==
+             Enum.sort(["ohhhhhh", "ohh", "oh"])
+
+    assert Enum.sort(Trie.search(t, 'oh')) ==
+             Enum.sort(["ohhhhhh", "ohh", "oh"])
+
+    assert Enum.sort(Trie.search(t, 'ohh')) ==
+             Enum.sort(["ohhhhhh", "ohh"])
+
+    assert Enum.sort(Trie.search(t, 'ohhh')) == ["ohhhhhh"]
+  end
+
+  test "search with non-existing prefix" do
+    t = Trie.put_words(~w{a b c})
+    assert Trie.search(t, "x") == []
+  end
+
   test "load 3 words" do
     t = Trie.put_words(~w{aa ab ac})
     trie_validate_node(t, 0, nil, 'a')
