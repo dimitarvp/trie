@@ -30,6 +30,12 @@ defmodule TrieTest do
            }
   end
 
+  test "words function returns the originally loaded words" do
+    words = ~w{hello hi penthouse people person}
+    t = Trie.put_words(words)
+    assert Enum.sort(Trie.words(t)) == words
+  end
+
   test "load 3 words" do
     t = Trie.put_words(~w{aa ab ac})
     trie_validate_node(t, 0, nil, 'a')
