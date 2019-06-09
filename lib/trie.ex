@@ -106,7 +106,7 @@ defmodule Trie do
   def add(t, word, usage_count \\ 1)
 
   def add(%Trie{} = t, word, usage_count) when is_binary(word) do
-    add(t, to_char_list(word), usage_count)
+    add(t, to_charlist(word), usage_count)
   end
 
   def add(%Trie{} = t, [head | tail], usage_count) do
@@ -130,7 +130,7 @@ defmodule Trie do
   def fetch(t, key)
 
   def fetch(%Trie{} = t, key) when is_binary(key) do
-    fetch(t, to_char_list(key))
+    fetch(t, to_charlist(key))
   end
 
   def fetch(%Trie{} = t, [head | tail]) do
@@ -172,7 +172,7 @@ defmodule Trie do
   """
   @spec pop(t, {charlist|binary}) :: {t, t}
   def pop(%Trie{} = t, key) when is_binary(key) do
-    pop(t, to_char_list(key))
+    pop(t, to_charlist(key))
   end
 
   def pop(%Trie{} = t, [head | tail])
@@ -201,7 +201,7 @@ defmodule Trie do
 
   def get_and_update(%Trie{} = t, key, fun)
   when is_binary(key) and is_function(fun, 1) do
-    get_and_update(t, to_char_list(key), fun)
+    get_and_update(t, to_charlist(key), fun)
   end
 
   def get_and_update(%Trie{} = t, key, fun)
