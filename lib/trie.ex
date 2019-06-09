@@ -170,8 +170,9 @@ defmodule Trie do
 
   def fetch(%__MODULE__{} = t, []), do: {:ok, t}
 
-  def fetch(%__MODULE__{} = t, key) when is_integer(key) do
-    case Map.get(t.children || %{}, key) do
+  def fetch(%__MODULE__{children: %{} = children}, key)
+      when is_integer(key) do
+    case Map.get(children, key) do
       val when not is_nil(val) -> {:ok, val}
       nil -> :error
     end
@@ -203,16 +204,16 @@ defmodule Trie do
     pop(t, to_charlist(key))
   end
 
-  def pop(%__MODULE__{} = t, [char | rest_chars])
+  def pop(%__MODULE__{children: %{} = children} = t, [char | rest_chars])
       when is_integer(char) and length(rest_chars) > 0 do
-    {popped_trie, modified_trie} = pop(Map.get(t.children, char), rest_chars)
-    t = %__MODULE__{t | children: Map.put(t.children, char, modified_trie)}
+    {popped_trie, modified_trie} = pop(Map.get(children, char), rest_chars)
+    t = %__MODULE__{t | children: Map.put(children, char, modified_trie)}
     {popped_trie, t}
   end
 
-  def pop(%__MODULE__{} = t, [char | rest_chars])
+  def pop(%__MODULE__{children: %{} = children} = t, [char | rest_chars])
       when is_integer(char) and length(rest_chars) == 0 do
-    {popped_trie, modified_children} = Map.pop(t.children, char)
+    {popped_trie, modified_children} = Map.pop(children, char)
     t = %__MODULE__{t | children: modified_children}
     {popped_trie, t}
   end
@@ -244,7 +245,7 @@ defmodule Trie do
   end
 
   defp get_and_update_without_pop(
-         %__MODULE__{} = t,
+         %__MODULE__{children: %{} = children} = t,
          [char | rest_chars],
          old_val,
          %__MODULE__{} = new_val
@@ -253,7 +254,7 @@ defmodule Trie do
     {_, modified_child} =
       get_and_update_without_pop(
         Map.get(
-          t.children,
+          children,
           char
         ),
         rest_chars,
@@ -263,14 +264,14 @@ defmodule Trie do
 
     modified_trie = %__MODULE__{
       t
-      | children: Map.put(t.children, char, modified_child)
+      | children: Map.put(children, char, modified_child)
     }
 
     {old_val, modified_trie}
   end
 
   defp get_and_update_without_pop(
-         %__MODULE__{} = t,
+         %__MODULE__{children: %{} = children} = t,
          [char | rest_chars],
          old_val,
          %__MODULE__{} = new_val
@@ -278,7 +279,7 @@ defmodule Trie do
        when is_integer(char) and length(rest_chars) == 0 do
     modified_trie = %__MODULE__{
       t
-      | children: Map.put(t.children, char, new_val)
+      | children: Map.put(children, char, new_val)
     }
 
     {old_val, modified_trie}
@@ -307,8 +308,8 @@ defmodule Trie do
   `Trie` nodes along the way are not printed because they have a `frequency`
   equalling zero, thus only `"inn"` is printed.
   """
-  def words(%__MODULE__{} = t, prefix \\ '') do
-    Enum.reduce(t.children, '', fn {_key, child}, acc ->
+  def words(%__MODULE__{children: %{} = children}, prefix \\ '') do
+    Enum.reduce(children, '', fn {_key, child}, acc ->
       Enum.join([
         acc,
         if child.frequency > 0 do
