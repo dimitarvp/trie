@@ -18,6 +18,18 @@ defmodule TrieTest do
     assert Trie.word_count(t) == 3
   end
 
+  test "load words with frequencies" do
+    assert Trie.put_words([{"a", 2}, {"b", 3}, {"c", 4}]) == %Trie{
+             children: %{
+               97 => %Trie{children: %{}, frequency: 2, key: ?a},
+               98 => %Trie{children: %{}, frequency: 3, key: ?b},
+               99 => %Trie{children: %{}, frequency: 4, key: ?c}
+             },
+             frequency: 0,
+             key: nil
+           }
+  end
+
   test "load 3 words" do
     t = Trie.put_words(~w{aa ab ac})
     trie_validate_node(t, 0, nil, 'a')
