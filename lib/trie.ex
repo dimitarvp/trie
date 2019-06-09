@@ -227,6 +227,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.get_and_update/3`.
   """
+  @spec get_and_update(t, charlist | binary, (key -> {t, t} | :pop)) :: {t, t}
   def get_and_update(t, key, fun)
 
   def get_and_update(%__MODULE__{} = t, key, fun)
@@ -245,13 +246,30 @@ defmodule Trie do
     end
   end
 
+  @spec get_and_update_without_pop(t, charlist, t | nil, t) :: {t, t}
+
+  defp get_and_update_without_pop(
+         %__MODULE__{children: %{} = children} = t,
+         [char],
+         old_val,
+         %__MODULE__{} = new_val
+       )
+       when is_integer(char) do
+    modified_trie = %__MODULE__{
+      t
+      | children: Map.put(children, char, new_val)
+    }
+
+    {old_val, modified_trie}
+  end
+
   defp get_and_update_without_pop(
          %__MODULE__{children: %{} = children} = t,
          [char | rest_chars],
          old_val,
          %__MODULE__{} = new_val
        )
-       when is_integer(char) and length(rest_chars) > 0 do
+       when is_integer(char) do
     {_, modified_child} =
       get_and_update_without_pop(
         Map.get(
@@ -266,21 +284,6 @@ defmodule Trie do
     modified_trie = %__MODULE__{
       t
       | children: Map.put(children, char, modified_child)
-    }
-
-    {old_val, modified_trie}
-  end
-
-  defp get_and_update_without_pop(
-         %__MODULE__{children: %{} = children} = t,
-         [char | rest_chars],
-         old_val,
-         %__MODULE__{} = new_val
-       )
-       when is_integer(char) and length(rest_chars) == 0 do
-    modified_trie = %__MODULE__{
-      t
-      | children: Map.put(children, char, new_val)
     }
 
     {old_val, modified_trie}
