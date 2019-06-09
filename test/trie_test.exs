@@ -77,29 +77,60 @@ defmodule TrieTest do
 
     assert Map.keys(Trie.get(t, 'a').children) == 'b'
     assert Map.keys(Trie.get(t, 'ab').children) == '123'
-    assert Trie.get(t, 'ab1') == %Trie{key: ?1, frequency: 1, word_count: 1, children: %{}}
-    assert Trie.get(t, 'ab2') == %Trie{key: ?2, frequency: 1, word_count: 1, children: %{}}
-    assert Trie.get(t, 'ab3') == %Trie{key: ?3, frequency: 1, word_count: 1, children: %{}}
+
+    assert Trie.get(t, 'ab1') == %Trie{
+             key: ?1,
+             frequency: 1,
+             word_count: 1,
+             children: %{}
+           }
+
+    assert Trie.get(t, 'ab2') == %Trie{
+             key: ?2,
+             frequency: 1,
+             word_count: 1,
+             children: %{}
+           }
+
+    assert Trie.get(t, 'ab3') == %Trie{
+             key: ?3,
+             frequency: 1,
+             word_count: 1,
+             children: %{}
+           }
+
     refute Trie.get(t, 'ab4')
   end
 
   test "load 2 chars and pop the bottom leaf" do
     t = Trie.put_word("ab")
     {popped, modified} = Trie.pop(t, 'ab')
-    assert popped == %Trie{key: ?b, frequency: 1, word_count: 1, children: %{}}
+
+    assert popped == %Trie{
+             key: ?b,
+             frequency: 1,
+             word_count: 1,
+             children: %{}
+           }
+
     refute Trie.get(modified, 'ab')
+
     assert Trie.get(modified, 'a') ==
-      %Trie{key: ?a, frequency: 0, word_count: 1, children: %{}}
+             %Trie{key: ?a, frequency: 0, word_count: 1, children: %{}}
   end
 
   test "load 2 chars and get and update the bottom leaf" do
     t = Trie.put_word("ab")
-    {old_val, new_val} = Trie.get_and_update(t, 'ab', fn(cur_val) ->
-      {cur_val, %Trie{key: ?b, frequency: 7, word_count: 0, children: %{}}}
-    end)
+
+    {old_val, new_val} =
+      Trie.get_and_update(t, 'ab', fn cur_val ->
+        {cur_val, %Trie{key: ?b, frequency: 7, word_count: 0, children: %{}}}
+      end)
+
     assert old_val == 'ab'
+
     assert Trie.get(new_val, 'ab') ==
-      %Trie{key: ?b, frequency: 7, word_count: 0, children: %{}}
+             %Trie{key: ?b, frequency: 7, word_count: 0, children: %{}}
   end
 
   test "non-printable word should result in an ArgumentError" do
@@ -120,39 +151,95 @@ defmodule TrieTest do
 
   test "add a binary word" do
     t = Trie.put_word("a")
+
     assert Trie.add(t, "b") ==
-      %Trie{children: %{?a => %Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
-                        ?b => %Trie{children: %{}, frequency: 1, word_count: 1, key: ?b}},
-            frequency: 0, key: nil}
+             %Trie{
+               children: %{
+                 ?a => %Trie{
+                   children: %{},
+                   frequency: 1,
+                   word_count: 1,
+                   key: ?a
+                 },
+                 ?b => %Trie{
+                   children: %{},
+                   frequency: 1,
+                   word_count: 1,
+                   key: ?b
+                 }
+               },
+               frequency: 0,
+               key: nil
+             }
   end
 
   test "add a list word" do
     t = Trie.put_word("a")
+
     assert Trie.add(t, 'b') ==
-      %Trie{children: %{?a => %Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
-                        ?b => %Trie{children: %{}, frequency: 1, word_count: 1, key: ?b}},
-            frequency: 0, key: nil}
+             %Trie{
+               children: %{
+                 ?a => %Trie{
+                   children: %{},
+                   frequency: 1,
+                   word_count: 1,
+                   key: ?a
+                 },
+                 ?b => %Trie{
+                   children: %{},
+                   frequency: 1,
+                   word_count: 1,
+                   key: ?b
+                 }
+               },
+               frequency: 0,
+               key: nil
+             }
   end
 
   test "add an empty list word" do
     t = Trie.put_word("a")
-    assert Trie.add(t, '', 2) ==
-      %Trie{children: %{?a => %Trie{children: %{}, frequency: 1, word_count: 1, key: ?a}},
-            frequency: 2, word_count: 0, key: nil}
 
+    assert Trie.add(t, '', 2) ==
+             %Trie{
+               children: %{
+                 ?a => %Trie{
+                   children: %{},
+                   frequency: 1,
+                   word_count: 1,
+                   key: ?a
+                 }
+               },
+               frequency: 2,
+               word_count: 0,
+               key: nil
+             }
   end
 
   test "add a word with usage count" do
     t = Trie.put_word("a")
+
     assert Trie.add(t, "a", 3) ==
-      %Trie{children: %{97 => %Trie{children: %{}, frequency: 4, word_count: 1, key: ?a}},
-            frequency: 0, word_count: 0, key: nil}
+             %Trie{
+               children: %{
+                 97 => %Trie{
+                   children: %{},
+                   frequency: 4,
+                   word_count: 1,
+                   key: ?a
+                 }
+               },
+               frequency: 0,
+               word_count: 0,
+               key: nil
+             }
   end
 
   test "fetching a node via binary key" do
     t = Trie.put_word("a")
+
     assert Trie.fetch(t, "a") ==
-      {:ok, %Trie{key: ?a, frequency: 1, word_count: 1, children: %{}}}
+             {:ok, %Trie{key: ?a, frequency: 1, word_count: 1, children: %{}}}
   end
 
   test "fetching from a nil object" do
@@ -179,23 +266,50 @@ defmodule TrieTest do
 
   test "popping a single letter key" do
     t = Trie.put_word("a")
-    assert Trie.pop(t, 'a') == {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
-                                %Trie{children: %{}, frequency: 0, word_count: 0, key: nil}}
 
-    assert Trie.pop(t, "a") == {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
-                                %Trie{children: %{}, frequency: 0, word_count: 0, key: nil}}
+    assert Trie.pop(t, 'a') ==
+             {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
+              %Trie{children: %{}, frequency: 0, word_count: 0, key: nil}}
+
+    assert Trie.pop(t, "a") ==
+             {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
+              %Trie{children: %{}, frequency: 0, word_count: 0, key: nil}}
   end
 
   test "popping a multiple letter key" do
     t = Trie.put_word("ab")
+
     assert Trie.pop(t, 'ab') ==
-      {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?b},
-       %Trie{children: %{?a => %Trie{children: %{}, frequency: 0, word_count: 1, key: ?a}},
-        frequency: 0, word_count: 0, key: nil}}
+             {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?b},
+              %Trie{
+                children: %{
+                  ?a => %Trie{
+                    children: %{},
+                    frequency: 0,
+                    word_count: 1,
+                    key: ?a
+                  }
+                },
+                frequency: 0,
+                word_count: 0,
+                key: nil
+              }}
+
     assert Trie.pop(t, "ab") ==
-      {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?b},
-       %Trie{children: %{?a => %Trie{children: %{}, frequency: 0, word_count: 1, key: ?a}},
-        frequency: 0, word_count: 0, key: nil}}
+             {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?b},
+              %Trie{
+                children: %{
+                  ?a => %Trie{
+                    children: %{},
+                    frequency: 0,
+                    word_count: 1,
+                    key: ?a
+                  }
+                },
+                frequency: 0,
+                word_count: 0,
+                key: nil
+              }}
   end
 
   test "popping from a node with a nil, empty binary or empty list key" do
@@ -215,9 +329,10 @@ defmodule TrieTest do
 
   test "get_and_update and popping a node" do
     t = Trie.put_word("a")
-    assert Trie.get_and_update(t, "a", fn(_key) -> :pop end) ==
-      {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
-       %Trie{children: %{}, frequency: 0, word_count: 0, key: nil}}
+
+    assert Trie.get_and_update(t, "a", fn _key -> :pop end) ==
+             {%Trie{children: %{}, frequency: 1, word_count: 1, key: ?a},
+              %Trie{children: %{}, frequency: 0, word_count: 0, key: nil}}
   end
 
   test "square brackets access" do
@@ -243,14 +358,22 @@ defmodule TrieTest do
 
   test "Access.put_in compatibility" do
     t = Trie.put_word("ab") |> Trie.add("ac")
-    t = put_in(t["ad"], %Trie{key: ?d, frequency: 0, word_count: 0, children: %{}})
+
+    t =
+      put_in(t["ad"], %Trie{
+        key: ?d,
+        frequency: 0,
+        word_count: 0,
+        children: %{}
+      })
+
     assert Map.keys(Trie.get(t, 'a').children) == 'bcd'
   end
 
   test "Access.update_in compatibility" do
     t = Trie.put_word("ab")
     expected = %Trie{key: ?b, frequency: 10, word_count: 0, children: %{}}
-    t = update_in(t, ['ab'], fn(_v) -> expected end)
+    t = update_in(t, ['ab'], fn _v -> expected end)
     assert Trie.get(t, 'ab') == expected
   end
 end

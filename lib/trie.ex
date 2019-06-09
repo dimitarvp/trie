@@ -57,10 +57,12 @@ defmodule Trie do
 
   @type key :: char
   @type val :: map
-  @type t :: %Trie{key: key,
-                   children: val,
-                   frequency: integer,
-                   word_count: integer}
+  @type t :: %Trie{
+          key: key,
+          children: val,
+          frequency: integer,
+          word_count: integer
+        }
 
   defstruct key: nil, children: %{}, frequency: 0, word_count: 0
 
@@ -69,7 +71,7 @@ defmodule Trie do
   creates. Raises `ArgumentError` if there are non-printable characters
   in the word.
   """
-  @spec put_word(charlist|binary, integer) :: t
+  @spec put_word(charlist | binary, integer) :: t
   def put_word(word, frequency \\ 1)
 
   def put_word(word, frequency) when is_list(word) do
@@ -80,6 +82,7 @@ defmodule Trie do
     if not String.printable?(word) do
       raise(ArgumentError, "the parameter must be printable")
     end
+
     add(%__MODULE__{}, word, frequency)
   end
 
@@ -93,6 +96,7 @@ defmodule Trie do
   @spec put_words([binary] | [{binary, pos_integer}]) :: t
   def put_words(texts) when is_list(texts) do
     t = %__MODULE__{}
+
     Enum.reduce(texts, t, fn
       {text, frequency}, acc -> add(acc, text, frequency)
       text, acc -> add(acc, text)
@@ -116,7 +120,7 @@ defmodule Trie do
   plus the `Kernel` functions like `Kernel.get_in/2`, `Kernel.put_in/3` and
   friends. Consult the documentation of `Access` for more details.
   """
-  @spec add(t, charlist|binary, integer) :: t
+  @spec add(t, charlist | binary, integer) :: t
   def add(t, word, frequency \\ 1)
 
   def add(%__MODULE__{} = t, word, frequency) when is_binary(word) do
@@ -141,7 +145,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.fetch/2`.
   """
-  @spec fetch(t, {charlist|binary}) :: ({:ok, t}|:error)
+  @spec fetch(t, {charlist | binary}) :: {:ok, t} | :error
   def fetch(t, key)
 
   def fetch(%__MODULE__{} = t, key) when is_binary(key) do
@@ -170,7 +174,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.get/3`.
   """
-  @spec get(t, {charlist|binary}, {t|nil}) :: t
+  @spec get(t, {charlist | binary}, {t | nil}) :: t
   def get(t, key, default \\ nil)
 
   def get(%__MODULE__{} = t, key, default) do
@@ -185,20 +189,20 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.pop/2`.
   """
-  @spec pop(t, {charlist|binary}) :: {t, t}
+  @spec pop(t, {charlist | binary}) :: {t, t}
   def pop(%__MODULE__{} = t, key) when is_binary(key) do
     pop(t, to_charlist(key))
   end
 
   def pop(%__MODULE__{} = t, [char | rest_chars])
-  when is_integer(char) and length(rest_chars) > 0 do
+      when is_integer(char) and length(rest_chars) > 0 do
     {popped_trie, modified_trie} = pop(Map.get(t.children, char), rest_chars)
     t = %__MODULE__{t | children: Map.put(t.children, char, modified_trie)}
     {popped_trie, t}
   end
 
   def pop(%__MODULE__{} = t, [char | rest_chars])
-  when is_integer(char) and length(rest_chars) == 0 do
+      when is_integer(char) and length(rest_chars) == 0 do
     {popped_trie, modified_children} = Map.pop(t.children, char)
     t = %__MODULE__{t | children: modified_children}
     {popped_trie, t}
@@ -215,40 +219,59 @@ defmodule Trie do
   def get_and_update(t, key, fun)
 
   def get_and_update(%__MODULE__{} = t, key, fun)
-  when is_binary(key) and is_function(fun, 1) do
+      when is_binary(key) and is_function(fun, 1) do
     get_and_update(t, to_charlist(key), fun)
   end
 
   def get_and_update(%__MODULE__{} = t, key, fun)
-  when is_list(key) and is_function(fun, 1) do
+      when is_list(key) and is_function(fun, 1) do
     case fun.(key) do
       {old_val, %__MODULE__{} = new_val} ->
         get_and_update_without_pop(t, key, old_val, new_val)
+
       :pop ->
         pop(t, key)
     end
   end
 
-  defp get_and_update_without_pop(%__MODULE__{} = t,
-                                  [char | rest_chars],
-                                  old_val,
-                                  %__MODULE__{} = new_val)
-  when is_integer(char) and length(rest_chars) > 0 do
-    {_, modified_child} = get_and_update_without_pop(Map.get(t.children,
-      char), rest_chars, old_val, new_val)
+  defp get_and_update_without_pop(
+         %__MODULE__{} = t,
+         [char | rest_chars],
+         old_val,
+         %__MODULE__{} = new_val
+       )
+       when is_integer(char) and length(rest_chars) > 0 do
+    {_, modified_child} =
+      get_and_update_without_pop(
+        Map.get(
+          t.children,
+          char
+        ),
+        rest_chars,
+        old_val,
+        new_val
+      )
 
-    modified_trie = %__MODULE__{t | children: Map.put(t.children, char,
-      modified_child)}
+    modified_trie = %__MODULE__{
+      t
+      | children: Map.put(t.children, char, modified_child)
+    }
 
     {old_val, modified_trie}
   end
 
-  defp get_and_update_without_pop(%__MODULE__{} = t,
-                                  [char | rest_chars],
-                                  old_val,
-                                  %__MODULE__{} = new_val)
-  when is_integer(char) and length(rest_chars) == 0 do
-    modified_trie = %__MODULE__{t | children: Map.put(t.children, char, new_val)}
+  defp get_and_update_without_pop(
+         %__MODULE__{} = t,
+         [char | rest_chars],
+         old_val,
+         %__MODULE__{} = new_val
+       )
+       when is_integer(char) and length(rest_chars) == 0 do
+    modified_trie = %__MODULE__{
+      t
+      | children: Map.put(t.children, char, new_val)
+    }
+
     {old_val, modified_trie}
   end
 
@@ -276,18 +299,20 @@ defmodule Trie do
   equalling zero, thus only `"inn"` is printed.
   """
   def words(%__MODULE__{} = t, prefix \\ '') do
-    Enum.reduce(t.children, '', fn({_key,child}, acc) ->
-      Enum.join [
+    Enum.reduce(t.children, '', fn {_key, child}, acc ->
+      Enum.join([
         acc,
         if child.frequency > 0 do
-          Enum.join([prefix,
-                     [child.key],
-                     '\n',
-                     words(child, prefix ++ [child.key])])
+          Enum.join([
+            prefix,
+            [child.key],
+            '\n',
+            words(child, prefix ++ [child.key])
+          ])
         else
           words(child, prefix ++ [child.key])
         end
-      ]
+      ])
     end)
   end
 end
