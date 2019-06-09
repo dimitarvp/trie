@@ -286,45 +286,42 @@ defmodule Trie do
     {old_val, modified_trie}
   end
 
-  @doc ~S"""
-  Returns a `String` containing one word per line. A `Trie` node is considered
-  a word terminator when its `frequency` field is greater than zero.
+  @spec get_words(t, charlist, [binary]) :: [binary]
+  defp get_words(
+         %__MODULE__{
+           children: %{} = children,
+           frequency: frequency,
+           key: key
+         },
+         word,
+         words
+       ) do
+    {next_word, next_words} =
+      case frequency do
+        f when f > 0 ->
+          new_word =
+            [key | word]
+            |> Enum.reverse()
+            |> to_string()
 
-  ## Examples
+          {[], [new_word | words]}
 
-      iex> Trie.words(Trie.put_words(["i", "in", "inn"]))
-      "i\nin\ninn\n"
+        _ ->
+          if is_nil(key) do
+            {word, words}
+          else
+            {[key | word], words}
+          end
+      end
 
-      iex> Trie.words(Trie.put_word("inn"))
-      "inn\n"
-
-      iex> Trie.words(%Trie{})
-      []
-
-  In the first example, `["i", "in", "inn"]` are separate words and each
-  `Trie` along the way has a `frequency` equal to one, thus they are all
-  printed.
-
-  In the second example, only the word `"inn"` is loaded and thus all the
-  `Trie` nodes along the way are not printed because they have a `frequency`
-  equalling zero, thus only `"inn"` is printed.
-  """
-  def words(%__MODULE__{children: %{} = children}, prefix \\ '') do
-    Enum.reduce(children, '', fn {_key, child}, acc ->
-      Enum.join([
-        acc,
-        if child.frequency > 0 do
-          Enum.join([
-            prefix,
-            [child.key],
-            '\n',
-            words(child, prefix ++ [child.key])
-          ])
-        else
-          words(child, prefix ++ [child.key])
-        end
-      ])
+    Enum.reduce(children, next_words, fn {_key, trie}, acc ->
+      get_words(trie, next_word, acc)
     end)
+  end
+
+  @spec words(t) :: [binary]
+  def words(%__MODULE__{} = t) do
+    get_words(t, [], [])
   end
 
   @spec word_count_by_frequency(non_neg_integer) :: 0 | 1
