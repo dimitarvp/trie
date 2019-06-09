@@ -3,51 +3,55 @@ defmodule Trie do
 
   @moduledoc ~S"""
   This module contains the type and functions to work with a [Trie (tree data
-  structure)](https://en.wikipedia.org/wiki/Trie).
+  structure)](https://en.wikipedia.org/wiki/Trie). The difference from the
+  accepted data structure is that this one only keeps one character per node.
 
-  It's a recursive node structure with 3 fields:
-  1. `key`: an integer representing a character. You can compose a word you are
-     looking for by traversing the `Trie` nodes recursively and appending all
-     characters along the way.
+  ### Fields
+
+  1. `key`: an integer representing an Unicode character. A word is composed
+      by recursively adding (or looking up) its characters, one level at a
+      time. **EXAMPLE**: Only loading the word "hello" will return a `Trie`
+      which is 6 levels deep: one root node (see below for its field values)
+      and 5 nodes for each character.
   2. `children`: a `Map` of `integer` keys (Unicode characters) and `Trie`
      nodes.
-  3. `usage_count`: amount of times the full word has been added to this `Trie`
-     node. Useful for word counting or weighted NLP. A usage count greater
-     than zero is considered to be a form of a word terminator (see the
-     example below).
-  4. `leaf_count`: caches the full recursive count of leaves under this node.
-     In the example below, the "t" node has a `leaf_count` of 3, the "o" has 1,
-     and the "e" node has 2.
+  3. `frequency`: amount of times the full word has been added to this `Trie`
+     node. A `Trie` node having a `frequency` greater than zero is considered
+     to be a word terminator (see the example below for clarification).
+  4. `word_count`: cached full recursive count of complete words
+     under the current node. It is changed as new words are added to the `Trie`.
+     See the example below for clarification.
 
-  The root of a newly constructed `Trie` always has a `nil` key.
+  ### Root node
 
-  Example:
+  The root node of a newly constructed `Trie` always has a `nil` key and zero
+  `frequency`. Its `children` are the first characters of the words.
+  Its `word_count` captures the count of all complete words in it.
+
+  ### Example
 
   Given the words `["ten", "tons", "tea"]` loaded with usage counts of
   `[2, 3, 4]` (which means the word `ten` has been used 2 times in the input
   text, the word `tons` has been used three times, and the word `tea` -- 4
-  times), a `Trie` will look like this (`usage_count` given at the start of
-  each line):
+  times), a `Trie` will look like the following (L1 to L4 stand for Levels 1
+  to 4 in the tree):
 
-  <pre>
-  (0) -t
-  (0)  -e
-  (4)   -a
-  (2)   -n
-  (0)  -o
-  (0)   -n
-  (3)    -s
-  </pre>
+  |L1 |L2 |L3 |L4 |`frequency`  |`word_count`|
+  |---|---|---|---|-------------|------------|
+  |_root_| | |    |            0|           3|
+  |`t`|   |   |   |            0|           3|
+  |   |`e`|   |   |            0|           2|
+  |   |   |`a`|   |            4|           1|
+  |   |   |`n`|   |            2|           1|
+  |   |`o`|   |   |            0|           1|
+  |   |   |`n`|   |            0|           1|
+  |   |   |   |`s`|            3|           1|
 
-  *PLEASE NOTE*: only the end of the word has a count associated with the
-  appropriate `Trie` node. The `usage_count` field of each `Trie` node gives
-  you a differentation between words that are explicitly loaded vs. the words
-  that can be automatically inferred by doing a full recursive visit. In this
-  particular example you would know that only the words `tea`, `ten` and
-  `tons` are explicitly loaded while conversely, the words `t`, `te`, `to` and
-  `ton` are not.
+  In the above example only the words `tea`, `ten` and `tons` are complete
+  while the words `t`, `te`, `to` and `ton` are not.
 
-  Implemented behaviors:
+  ### Implemented behaviors
+
   - `Access`
   """
 
@@ -55,40 +59,50 @@ defmodule Trie do
   @type val :: map
   @type t :: %Trie{key: key,
                    children: val,
-                   usage_count: integer,
-                   leaf_count: integer}
+                   frequency: integer,
+                   word_count: integer}
 
-  defstruct key: nil, children: %{}, usage_count: 0, leaf_count: 0
+  defstruct key: nil, children: %{}, frequency: 0, word_count: 0
 
   @doc ~S"""
   Convenience function: it invokes `add/3` on a brand new `Trie` object it
   creates. Raises `ArgumentError` if there are non-printable characters
   in the word.
   """
-  @spec load(charlist|binary, integer) :: t
-  def load(word, usage_count \\ 1)
+  @spec put_word(charlist|binary, integer) :: t
+  def put_word(word, frequency \\ 1)
 
-  def load(word, usage_count) when is_list(word) do
-    load(List.to_string(word), usage_count)
+  def put_word(word, frequency) when is_list(word) do
+    put_word(List.to_string(word), frequency)
   end
 
-  def load(word, usage_count) when is_binary(word) do
+  def put_word(word, frequency) when is_binary(word) do
     if not String.printable?(word) do
       raise(ArgumentError, "the parameter must be printable")
     end
-    add(%Trie{}, word, usage_count)
+    add(%__MODULE__{}, word, frequency)
   end
 
   @doc ~S"""
-  Convenience function: it invokes `add/3` on a brand new `Trie` object it
-  creates, for all the strings/charlists in the passed list.
+  Creates a `Trie` and `add/3`s words (or pairs of words and frequencies) to it.
+  Note that any combination of words and words with frequencies is accepted, for
+  example `["one", {"word", 2}, {"another", 5}, "day"]` is a valid input and it
+  would add the words "one" and "day" with frequencies of one while the words
+  "word" and "another" will have frequencies of two and five, respectively.
   """
-  @spec load_multiple(list) :: t
-  def load_multiple(texts) when is_list(texts) do
-    t = %Trie{}
-    Enum.reduce(texts, t, fn(text, acc) ->
-      add(acc, text)
+  @spec put_words([binary] | [{binary, pos_integer}]) :: t
+  def put_words(texts) when is_list(texts) do
+    t = %__MODULE__{}
+    Enum.reduce(texts, t, fn
+      {text, frequency}, acc -> add(acc, text, frequency)
+      text, acc -> add(acc, text)
     end)
+  end
+
+  defp get_or_create_node(%__MODULE__{children: %{} = children}, key) do
+    children
+    |> Map.put_new(key, %__MODULE__{key: key})
+    |> Map.get(key)
   end
 
   @doc ~S"""
@@ -103,25 +117,26 @@ defmodule Trie do
   friends. Consult the documentation of `Access` for more details.
   """
   @spec add(t, charlist|binary, integer) :: t
-  def add(t, word, usage_count \\ 1)
+  def add(t, word, frequency \\ 1)
 
-  def add(%Trie{} = t, word, usage_count) when is_binary(word) do
-    add(t, to_charlist(word), usage_count)
+  def add(%__MODULE__{} = t, word, frequency) when is_binary(word) do
+    add(t, to_charlist(word), frequency)
   end
 
-  def add(%Trie{} = t, [head | tail], usage_count) do
-    child = Map.get(t.children, head) || %Trie{key: head}
-    child = add(child, tail, usage_count)
+  def add(%__MODULE__{} = t, [head | tail], frequency) do
+    child = get_or_create_node(t, head)
+    child = add(child, tail, frequency)
+    child = %__MODULE__{child | word_count: child.word_count + 1}
     children = Map.put(t.children, head, child)
-    %Trie{t | children: children}
+    %__MODULE__{t | children: children}
   end
 
-  def add(%Trie{} = t, [], usage_count) do
-    %Trie{t | usage_count: t.usage_count + usage_count}
+  def add(%__MODULE__{} = t, [], frequency) do
+    %__MODULE__{t | frequency: t.frequency + frequency, word_count: 0}
   end
 
-  def add(nil, _text, _usage_count), do: nil
-  def add(%Trie{} = t, nil, _usage_count), do: t
+  def add(nil, _text, _frequency), do: nil
+  def add(%__MODULE__{} = t, nil, _frequency), do: t
 
   @doc ~S"""
   Implements the callback `c:Access.fetch/2`.
@@ -129,20 +144,20 @@ defmodule Trie do
   @spec fetch(t, {charlist|binary}) :: ({:ok, t}|:error)
   def fetch(t, key)
 
-  def fetch(%Trie{} = t, key) when is_binary(key) do
+  def fetch(%__MODULE__{} = t, key) when is_binary(key) do
     fetch(t, to_charlist(key))
   end
 
-  def fetch(%Trie{} = t, [head | tail]) do
+  def fetch(%__MODULE__{} = t, [head | tail]) do
     case fetch(t, head) do
       {:ok, child} -> fetch(child, tail)
       :error -> :error
     end
   end
 
-  def fetch(%Trie{} = t, []), do: {:ok, t}
+  def fetch(%__MODULE__{} = t, []), do: {:ok, t}
 
-  def fetch(%Trie{} = t, key) when is_integer(key) do
+  def fetch(%__MODULE__{} = t, key) when is_integer(key) do
     case Map.get(t.children || %{}, key) do
       val when not is_nil(val) -> {:ok, val}
       nil -> :error
@@ -158,7 +173,7 @@ defmodule Trie do
   @spec get(t, {charlist|binary}, {t|nil}) :: t
   def get(t, key, default \\ nil)
 
-  def get(%Trie{} = t, key, default) do
+  def get(%__MODULE__{} = t, key, default) do
     case fetch(t, key) do
       {:ok, val} -> val
       :error -> default
@@ -171,27 +186,27 @@ defmodule Trie do
   Implements the callback `c:Access.pop/2`.
   """
   @spec pop(t, {charlist|binary}) :: {t, t}
-  def pop(%Trie{} = t, key) when is_binary(key) do
+  def pop(%__MODULE__{} = t, key) when is_binary(key) do
     pop(t, to_charlist(key))
   end
 
-  def pop(%Trie{} = t, [head | tail])
+  def pop(%__MODULE__{} = t, [head | tail])
   when is_integer(head) and length(tail) > 0 do
     {popped_trie, modified_trie} = pop(Map.get(t.children, head), tail)
-    t = %Trie{t | children: Map.put(t.children, head, modified_trie)}
+    t = %__MODULE__{t | children: Map.put(t.children, head, modified_trie)}
     {popped_trie, t}
   end
 
-  def pop(%Trie{} = t, [head | tail])
+  def pop(%__MODULE__{} = t, [head | tail])
   when is_integer(head) and length(tail) == 0 do
     {popped_trie, modified_children} = Map.pop(t.children, head)
-    t = %Trie{t | children: modified_children}
+    t = %__MODULE__{t | children: modified_children}
     {popped_trie, t}
   end
 
-  def pop(%Trie{} = _t, ""), do: {nil, %{}}
-  def pop(%Trie{} = _t, []), do: {nil, %{}}
-  def pop(%Trie{} = _t, nil), do: {nil, %{}}
+  def pop(%__MODULE__{} = _t, ""), do: {nil, %{}}
+  def pop(%__MODULE__{} = _t, []), do: {nil, %{}}
+  def pop(%__MODULE__{} = _t, nil), do: {nil, %{}}
   def pop(nil, _key), do: {nil, %{}}
 
   @doc ~S"""
@@ -199,72 +214,72 @@ defmodule Trie do
   """
   def get_and_update(t, key, fun)
 
-  def get_and_update(%Trie{} = t, key, fun)
+  def get_and_update(%__MODULE__{} = t, key, fun)
   when is_binary(key) and is_function(fun, 1) do
     get_and_update(t, to_charlist(key), fun)
   end
 
-  def get_and_update(%Trie{} = t, key, fun)
+  def get_and_update(%__MODULE__{} = t, key, fun)
   when is_list(key) and is_function(fun, 1) do
     case fun.(key) do
-      {old_val, %Trie{} = new_val} ->
+      {old_val, %__MODULE__{} = new_val} ->
         get_and_update_without_pop(t, key, old_val, new_val)
       :pop ->
         pop(t, key)
     end
   end
 
-  defp get_and_update_without_pop(%Trie{} = t,
+  defp get_and_update_without_pop(%__MODULE__{} = t,
                                   [head | tail],
                                   old_val,
-                                  %Trie{} = new_val)
+                                  %__MODULE__{} = new_val)
   when is_integer(head) and length(tail) > 0 do
     {_, modified_child} = get_and_update_without_pop(Map.get(t.children,
       head), tail, old_val, new_val)
 
-    modified_trie = %Trie{t | children: Map.put(t.children, head,
+    modified_trie = %__MODULE__{t | children: Map.put(t.children, head,
       modified_child)}
 
     {old_val, modified_trie}
   end
 
-  defp get_and_update_without_pop(%Trie{} = t,
+  defp get_and_update_without_pop(%__MODULE__{} = t,
                                   [head | tail],
                                   old_val,
-                                  %Trie{} = new_val)
+                                  %__MODULE__{} = new_val)
   when is_integer(head) and length(tail) == 0 do
-    modified_trie = %Trie{t | children: Map.put(t.children, head, new_val)}
+    modified_trie = %__MODULE__{t | children: Map.put(t.children, head, new_val)}
     {old_val, modified_trie}
   end
 
   @doc ~S"""
   Returns a `String` containing one word per line. A `Trie` node is considered
-  a word terminator when its `usage_count` field is greater than zero.
+  a word terminator when its `frequency` field is greater than zero.
 
   ## Examples
 
-      iex> Trie.words(Trie.load_multiple(["i", "in", "inn"]))
+      iex> Trie.words(Trie.put_words(["i", "in", "inn"]))
       "i\nin\ninn\n"
 
-      iex> Trie.words(Trie.load("inn"))
+      iex> Trie.words(Trie.put_word("inn"))
       "inn\n"
 
       iex> Trie.words(%Trie{})
       []
 
   In the first example, `["i", "in", "inn"]` are separate words and each
-  `Trie` along the way has a `usage_count` equal to one, thus they are all
+  `Trie` along the way has a `frequency` equal to one, thus they are all
   printed.
 
   In the second example, only the word `"inn"` is loaded and thus all the
-  `Trie` nodes along the way are not printed because they have a `usage_count`
+  `Trie` nodes along the way are not printed because they have a `frequency`
   equalling zero, thus only `"inn"` is printed.
   """
-  def words(%Trie{} = t, prefix \\ '') do
+  def words(%__MODULE__{} = t, prefix \\ '') do
     Enum.reduce(t.children, '', fn({_key,child}, acc) ->
       Enum.join [
         acc,
-        if child.usage_count > 0 do
+        if child.frequency > 0 do
           Enum.join([prefix,
                      [child.key],
                      '\n',
