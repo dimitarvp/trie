@@ -9,4 +9,3 @@ Testing plus coverage report: `mix test --cover`. The coverage info is located i
 # TODO
 
 - Improve documentation on how can the `Trie` be traversed via the `Access` module.
-- Add a function to search by a prefix and return all matches. Can be used for auto-complete.
