@@ -149,9 +149,6 @@ defmodule Trie do
     %__MODULE__{t | frequency: t.frequency + frequency, word_count: 0}
   end
 
-  def add(nil, _text, _frequency), do: nil
-  def add(%__MODULE__{} = t, nil, _frequency), do: t
-
   @doc ~S"""
   Implements the callback `c:Access.fetch/2`.
   """

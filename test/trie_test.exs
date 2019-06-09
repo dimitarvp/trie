@@ -139,16 +139,6 @@ defmodule TrieTest do
     end)
   end
 
-  test "add a nil word" do
-    t = Trie.put_word("ab")
-    assert Trie.add(t, nil) == t
-  end
-
-  test "add to a nil object" do
-    assert Trie.add(nil, "a") == nil
-    assert Trie.add(nil, "a", 3) == nil
-  end
-
   test "add a binary word" do
     t = Trie.put_word("a")
 
