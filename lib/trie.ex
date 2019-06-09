@@ -21,8 +21,9 @@ defmodule Trie do
 
   ### Functions of interest
 
+  - `words/1`: returns a list of all complete words found in the trie.
+    No particular order is guaranteed.
   - `word_count/1`: returns the count of all complete words in this trie.
-    Note that this count may be smaller than the total amount of nodes.
 
   ### Root node
 
