@@ -18,15 +18,16 @@ defmodule Trie do
   3. `frequency`: amount of times the full word has been added to this `Trie`
      node. A `Trie` node having a `frequency` greater than zero is considered
      to be a word terminator (see the example below for clarification).
-  4. `word_count`: cached full recursive count of complete words
-     under the current node. It is changed as new words are added to the `Trie`.
-     See the example below for clarification.
+
+  ### Functions of interest
+
+  - `word_count/1`: returns the count of all complete words in this trie.
+    Note that this count may be smaller than the total amount of nodes.
 
   ### Root node
 
   The root node of a newly constructed `Trie` always has a `nil` key and zero
   `frequency`. Its `children` are the first characters of the words.
-  Its `word_count` captures the count of all complete words in it.
 
   ### Example
 
@@ -36,16 +37,16 @@ defmodule Trie do
   times), a `Trie` will look like the following (L1 to L4 stand for Levels 1
   to 4 in the tree):
 
-  |L1 |L2 |L3 |L4 |`frequency`  |`word_count`|
-  |---|---|---|---|-------------|------------|
-  |_root_| | |    |            0|           3|
-  |`t`|   |   |   |            0|           3|
-  |   |`e`|   |   |            0|           2|
-  |   |   |`a`|   |            4|           1|
-  |   |   |`n`|   |            2|           1|
-  |   |`o`|   |   |            0|           1|
-  |   |   |`n`|   |            0|           1|
-  |   |   |   |`s`|            3|           1|
+  |L1 |L2 |L3 |L4 |`frequency`  |
+  |---|---|---|---|-------------|
+  |_root_| | |    |            0|
+  |`t`|   |   |   |            0|
+  |   |`e`|   |   |            0|
+  |   |   |`a`|   |            4|
+  |   |   |`n`|   |            2|
+  |   |`o`|   |   |            0|
+  |   |   |`n`|   |            0|
+  |   |   |   |`s`|            3|
 
   In the above example only the words `tea`, `ten` and `tons` are complete
   while the words `t`, `te`, `to` and `ton` are not.
@@ -61,11 +62,10 @@ defmodule Trie do
   @type t :: %Trie{
           key: optional_key,
           children: children,
-          frequency: non_neg_integer,
-          word_count: non_neg_integer
+          frequency: non_neg_integer
         }
 
-  defstruct key: nil, children: %{}, frequency: 0, word_count: 0
+  defstruct key: nil, children: %{}, frequency: 0
 
   @doc ~S"""
   Convenience function: it invokes `add/3` on a brand new `Trie` object it
@@ -154,13 +154,12 @@ defmodule Trie do
       when is_integer(frequency) do
     child = get_or_create_node(t, char)
     child = add(child, rest_chars, frequency)
-    child = %__MODULE__{child | word_count: child.word_count + 1}
     children = Map.put(children, char, child)
     %__MODULE__{t | children: children}
   end
 
   def add(%__MODULE__{} = t, [], frequency) when is_integer(frequency) do
-    %__MODULE__{t | frequency: t.frequency + frequency, word_count: 0}
+    %__MODULE__{t | frequency: t.frequency + frequency}
   end
 
   @doc ~S"""
@@ -326,5 +325,20 @@ defmodule Trie do
         end
       ])
     end)
+  end
+
+  @spec word_count_by_frequency(non_neg_integer) :: 0 | 1
+  defp word_count_by_frequency(freq) when freq > 0, do: 1
+  defp word_count_by_frequency(_), do: 0
+
+  @spec word_count(t) :: non_neg_integer
+  def word_count(%__MODULE__{children: %{} = children, frequency: frequency}) do
+    Enum.reduce(
+      children,
+      word_count_by_frequency(frequency),
+      fn {_key, child}, total ->
+        total + word_count(child)
+      end
+    )
   end
 end
