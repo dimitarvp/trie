@@ -232,25 +232,13 @@ defmodule TrieTest do
              {:ok, %Trie{key: ?a, frequency: 1, word_count: 1, children: %{}}}
   end
 
-  test "fetching from a nil object" do
-    assert Trie.fetch(nil, "a") == :error
-    assert Trie.fetch(nil, 'a') == :error
-  end
-
-  test "fetching with a nil or empty key" do
+  test "fetching with an empty key" do
     t = Trie.put_word("a")
-    assert Trie.fetch(t, nil) == :error
     assert Trie.fetch(t, '') == {:ok, t}
   end
 
-  test "getting from a nil object" do
-    assert Trie.get(nil, "a") == :error
-    assert Trie.get(nil, 'a') == :error
-  end
-
-  test "getting with a nil or empty key" do
+  test "getting with an empty key" do
     t = Trie.put_word("a")
-    assert Trie.get(t, nil) == nil
     assert Trie.get(t, '') == t
   end
 
@@ -304,17 +292,8 @@ defmodule TrieTest do
 
   test "popping from a node with a nil, empty binary or empty list key" do
     t = Trie.put_word("a")
-    assert Trie.pop(t, nil) == {nil, %{}}
     assert Trie.pop(t, "") == {nil, %{}}
     assert Trie.pop(t, '') == {nil, %{}}
-  end
-
-  test "popping from a nil object" do
-    assert Trie.pop(nil, nil) == {nil, %{}}
-    assert Trie.pop(nil, 'a') == {nil, %{}}
-    assert Trie.pop(nil, "a") == {nil, %{}}
-    assert Trie.pop(nil, '') == {nil, %{}}
-    assert Trie.pop(nil, "") == {nil, %{}}
   end
 
   test "get_and_update and popping a node" do

@@ -55,10 +55,11 @@ defmodule Trie do
   - `Access`
   """
 
-  @type key :: char | nil
+  @type key :: char
+  @type optional_key :: char | nil
   @type children :: %{required(key) => t} | %{}
   @type t :: %Trie{
-          key: key,
+          key: optional_key,
           children: children,
           frequency: non_neg_integer,
           word_count: non_neg_integer
@@ -107,10 +108,23 @@ defmodule Trie do
   end
 
   @spec get_or_create_node(t, key) :: t
-  defp get_or_create_node(%__MODULE__{children: %{} = children}, key) do
+  defp get_or_create_node(%__MODULE__{children: %{} = children}, key)
+       when is_integer(key) do
     children
     |> Map.put_new(key, %__MODULE__{key: key})
     |> Map.get(key)
+  end
+
+  @spec get_node(t, key) :: t | nil
+  defp get_node(%__MODULE__{children: %{} = children}, key)
+       when is_integer(key) do
+    Map.get(children, key)
+  end
+
+  @spec fetch_node(t, key) :: {:ok, t} | :error
+  defp fetch_node(%__MODULE__{children: %{} = children}, key)
+       when is_integer(key) do
+    Map.fetch(children, key)
   end
 
   @doc ~S"""
@@ -152,7 +166,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.fetch/2`.
   """
-  @spec fetch(t, {charlist | binary}) :: {:ok, t} | :error
+  @spec fetch(t, charlist | binary) :: {:ok, t} | :error
   def fetch(t, key)
 
   def fetch(%__MODULE__{} = t, key) when is_binary(key) do
@@ -168,16 +182,10 @@ defmodule Trie do
 
   def fetch(%__MODULE__{} = t, []), do: {:ok, t}
 
-  def fetch(%__MODULE__{children: %{} = children}, key)
+  def fetch(%__MODULE__{} = t, key)
       when is_integer(key) do
-    case Map.get(children, key) do
-      val when not is_nil(val) -> {:ok, val}
-      nil -> :error
-    end
+    fetch_node(t, key)
   end
-
-  def fetch(nil, _key), do: :error
-  def fetch(_t, nil), do: :error
 
   @doc ~S"""
   Implements the callback `c:Access.get/3`.
@@ -192,19 +200,17 @@ defmodule Trie do
     end
   end
 
-  def get(nil, _key, _default), do: :error
-
   @doc ~S"""
   Implements the callback `c:Access.pop/2`.
   """
-  @spec pop(t, {charlist | binary}) :: {nil | t, t}
+  @spec pop(t, charlist | binary) :: {nil | t, t}
   def pop(%__MODULE__{} = t, key) when is_binary(key) do
     pop(t, to_charlist(key))
   end
 
   def pop(%__MODULE__{children: %{} = children} = t, [char | rest_chars])
       when is_integer(char) and length(rest_chars) > 0 do
-    {popped_trie, modified_trie} = pop(Map.get(children, char), rest_chars)
+    {popped_trie, modified_trie} = pop(get_node(t, char), rest_chars)
     t = %__MODULE__{t | children: Map.put(children, char, modified_trie)}
     {popped_trie, t}
   end
@@ -218,8 +224,6 @@ defmodule Trie do
 
   def pop(%__MODULE__{} = _t, ""), do: {nil, %{}}
   def pop(%__MODULE__{} = _t, []), do: {nil, %{}}
-  def pop(%__MODULE__{} = _t, nil), do: {nil, %{}}
-  def pop(nil, _key), do: {nil, %{}}
 
   @doc ~S"""
   Implements the callback `c:Access.get_and_update/3`.
