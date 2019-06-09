@@ -31,9 +31,9 @@ defmodule TrieTest do
   end
 
   test "words function returns the originally loaded words" do
-    words = ~w{hello hi penthouse people person}
+    words = ["damn", "dang", "hello", "helm", "hey", "hi", "oh", "ohh", "ohhhhhh"]
     t = Trie.put_words(words)
-    assert Enum.sort(Trie.words(t)) == words
+    assert Enum.sort(Trie.words(t)) == Enum.sort(words)
   end
 
   test "load 3 words" do
