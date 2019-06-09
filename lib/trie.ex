@@ -21,9 +21,11 @@ defmodule Trie do
 
   ### Functions of interest
 
+  - `search/2`: searches for a prefix in the trie and returns a list of
+    complete words that match the prefix.
   - `words/1`: returns a list of all complete words found in the trie.
     No particular order is guaranteed.
-  - `word_count/1`: returns the count of all complete words in this trie.
+  - `word_count/1`: returns the count of all complete words in the trie.
 
   ### Root node
 
