@@ -131,12 +131,16 @@ defmodule Trie do
     add(t, to_charlist(word), frequency)
   end
 
-  def add(%__MODULE__{} = t, [char | rest_chars], frequency)
+  def add(
+        %__MODULE__{children: %{} = children} = t,
+        [char | rest_chars],
+        frequency
+      )
       when is_integer(frequency) do
     child = get_or_create_node(t, char)
     child = add(child, rest_chars, frequency)
     child = %__MODULE__{child | word_count: child.word_count + 1}
-    children = Map.put(t.children, char, child)
+    children = Map.put(children, char, child)
     %__MODULE__{t | children: children}
   end
 
