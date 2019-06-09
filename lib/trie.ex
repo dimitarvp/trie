@@ -71,14 +71,16 @@ defmodule Trie do
   creates. Raises `ArgumentError` if there are non-printable characters
   in the word.
   """
-  @spec put_word(charlist | binary, integer) :: t
+  @spec put_word(charlist | binary, integer) :: t | no_return
   def put_word(word, frequency \\ 1)
 
-  def put_word(word, frequency) when is_list(word) do
+  def put_word(word, frequency)
+      when is_list(word) and is_integer(frequency) do
     put_word(List.to_string(word), frequency)
   end
 
-  def put_word(word, frequency) when is_binary(word) do
+  def put_word(word, frequency)
+      when is_binary(word) and is_integer(frequency) do
     if not String.printable?(word) do
       raise(ArgumentError, "the parameter must be printable")
     end
@@ -95,11 +97,12 @@ defmodule Trie do
   """
   @spec put_words([binary] | [{binary, pos_integer}]) :: t
   def put_words(texts) when is_list(texts) do
-    t = %__MODULE__{}
+    Enum.reduce(texts, %__MODULE__{}, fn
+      {text, frequency}, acc when is_binary(text) and is_integer(frequency) ->
+        add(acc, text, frequency)
 
-    Enum.reduce(texts, t, fn
-      {text, frequency}, acc -> add(acc, text, frequency)
-      text, acc -> add(acc, text)
+      text, acc when is_binary(text) ->
+        add(acc, text)
     end)
   end
 
@@ -123,11 +126,13 @@ defmodule Trie do
   @spec add(t, charlist | binary, integer) :: t
   def add(t, word, frequency \\ 1)
 
-  def add(%__MODULE__{} = t, word, frequency) when is_binary(word) do
+  def add(%__MODULE__{} = t, word, frequency)
+      when is_binary(word) and is_integer(frequency) do
     add(t, to_charlist(word), frequency)
   end
 
-  def add(%__MODULE__{} = t, [char | rest_chars], frequency) do
+  def add(%__MODULE__{} = t, [char | rest_chars], frequency)
+      when is_integer(frequency) do
     child = get_or_create_node(t, char)
     child = add(child, rest_chars, frequency)
     child = %__MODULE__{child | word_count: child.word_count + 1}
@@ -135,7 +140,7 @@ defmodule Trie do
     %__MODULE__{t | children: children}
   end
 
-  def add(%__MODULE__{} = t, [], frequency) do
+  def add(%__MODULE__{} = t, [], frequency) when is_integer(frequency) do
     %__MODULE__{t | frequency: t.frequency + frequency, word_count: 0}
   end
 
@@ -174,7 +179,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.get/3`.
   """
-  @spec get(t, {charlist | binary}, {t | nil}) :: t
+  @spec get(t, charlist | binary, t | nil) :: t
   def get(t, key, default \\ nil)
 
   def get(%__MODULE__{} = t, key, default) do
@@ -189,7 +194,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.pop/2`.
   """
-  @spec pop(t, {charlist | binary}) :: {t, t}
+  @spec pop(t, {charlist | binary}) :: {nil | t, t}
   def pop(%__MODULE__{} = t, key) when is_binary(key) do
     pop(t, to_charlist(key))
   end
