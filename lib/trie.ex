@@ -106,6 +106,7 @@ defmodule Trie do
     end)
   end
 
+  @spec get_or_create_node(t, key) :: t
   defp get_or_create_node(%__MODULE__{children: %{} = children}, key) do
     children
     |> Map.put_new(key, %__MODULE__{key: key})
