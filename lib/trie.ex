@@ -5,8 +5,23 @@ defmodule Trie do
   This module contains the type and functions to work with a [Trie (tree data
   structure)](https://en.wikipedia.org/wiki/Trie). The difference from the
   accepted data structure is that this one only keeps one character per node.
+  The data structure here also implements the Elixir's `Access` behaviour.
+
+  ### Functions of interest
+
+  - `search/2`: searches for a prefix in the trie and returns a list of
+    complete words that match the prefix.
+  - `words/1`: returns a list of all complete words found in the trie.
+    No particular order is guaranteed.
+  - `word_count/1`: returns the count of all complete words in the trie.
 
   ### Fields
+
+  **IMPORTANT NOTE**: None of the fields should be relied on as a public API.
+  Anything you need from a `Trie` should be achievable by its functions.
+
+  This section is provided as an informative piece to demonstrate the internal
+  data structure.
 
   1. `key`: an integer representing an Unicode character. A word is composed
       by recursively adding (or looking up) its characters, one level at a
@@ -19,14 +34,6 @@ defmodule Trie do
      node. A `Trie` node having a `frequency` greater than zero is considered
      to be a word terminator (see the example below for clarification).
 
-  ### Functions of interest
-
-  - `search/2`: searches for a prefix in the trie and returns a list of
-    complete words that match the prefix.
-  - `words/1`: returns a list of all complete words found in the trie.
-    No particular order is guaranteed.
-  - `word_count/1`: returns the count of all complete words in the trie.
-
   ### Root node
 
   The root node of a newly constructed `Trie` always has a `nil` key and zero
@@ -34,29 +41,23 @@ defmodule Trie do
 
   ### Example
 
-  Given the words `["ten", "tons", "tea"]` loaded with usage counts of
-  `[2, 3, 4]` (which means the word `ten` has been used 2 times in the input
-  text, the word `tons` has been used three times, and the word `tea` -- 4
-  times), a `Trie` will look like the following (L1 to L4 stand for Levels 1
-  to 4 in the tree):
+  Given the words `["ten", "tons", "tea"]` loaded with frequencies of
+  2, 3 and 4 respectively, a `Trie` will look like the following (L0 to L4
+  stand for Levels 0 to 4 in the tree):
 
-  |L1 |L2 |L3 |L4 |`frequency`  |
-  |---|---|---|---|-------------|
-  |_root_| | |    |            0|
-  |`t`|   |   |   |            0|
-  |   |`e`|   |   |            0|
-  |   |   |`a`|   |            4|
-  |   |   |`n`|   |            2|
-  |   |`o`|   |   |            0|
-  |   |   |`n`|   |            0|
-  |   |   |   |`s`|            3|
+  |L0    |L1 |L2 |L3 |L4 |Frequency|
+  |------|---|---|---|---|--------:|
+  |_root_|   |   |   |   |        0|
+  |      |`t`|   |   |   |        0|
+  |      |   |`e`|   |   |        0|
+  |      |   |   |`a`|   |        4|
+  |      |   |   |`n`|   |        2|
+  |      |   |`o`|   |   |        0|
+  |      |   |   |`n`|   |        0|
+  |      |   |   |   |`s`|        3|
 
   In the above example only the words `tea`, `ten` and `tons` are complete
   while the words `t`, `te`, `to` and `ton` are not.
-
-  ### Implemented behaviors
-
-  - `Access`
   """
 
   @type key :: char
@@ -71,9 +72,8 @@ defmodule Trie do
   defstruct key: nil, children: %{}, frequency: 0
 
   @doc ~S"""
-  Convenience function: it invokes `add/3` on a brand new `Trie` object it
-  creates. Raises `ArgumentError` if there are non-printable characters
-  in the word.
+  Creates a `Trie` and invokes `add/3`.
+  Raises `ArgumentError` if there are non-printable characters in the word.
   """
   @spec put_word(charlist | binary, integer) :: t | no_return
   def put_word(word, frequency \\ 1)
@@ -93,11 +93,13 @@ defmodule Trie do
   end
 
   @doc ~S"""
-  Creates a `Trie` and `add/3`s words (or pairs of words and frequencies) to it.
+  Creates a `Trie` and invokes `add/3` on each word (or pairs of words and
+  frequencies) to it.
   Note that any combination of words and words with frequencies is accepted, for
   example `["one", {"word", 2}, {"another", 5}, "day"]` is a valid input and it
   would add the words "one" and "day" with frequencies of one while the words
   "word" and "another" will have frequencies of two and five, respectively.
+  Also see `put_word/2`.
   """
   @spec put_words([binary] | [{binary, pos_integer}]) :: t
   def put_words(texts) when is_list(texts) do
@@ -326,6 +328,9 @@ defmodule Trie do
   end
 
   @spec words(t) :: [binary]
+  @doc ~S"""
+  Returns a list of all words.
+  """
   def words(%__MODULE__{} = t) do
     get_words(t, [], [])
   end
@@ -335,7 +340,10 @@ defmodule Trie do
   defp word_count_by_frequency(_), do: 0
 
   @spec word_count(t) :: non_neg_integer
-  def word_count(%__MODULE__{children: %{} = children, frequency: frequency}) do
+  @doc ~S"""
+  Returns the count of all words (`Trie` nodes that have a non-zero frequency).
+  """
+  def word_count(%__MODULE__{children: %{} = children, frequency: frequency} = _t) do
     Enum.reduce(
       children,
       word_count_by_frequency(frequency),
@@ -347,6 +355,9 @@ defmodule Trie do
 
   @spec search(t, charlist | binary) :: [binary]
 
+  @doc ~S"""
+  Searches for a prefix and returns a list of word matches.
+  """
   def search(%__MODULE__{} = t, prefix) when is_binary(prefix) do
     cut_prefix = String.slice(prefix, 0..-2)
     sub_trie = get(t, prefix) || %__MODULE__{}
