@@ -37,7 +37,7 @@ defmodule Trie.Mixfile do
   defp deps do
     [
       {:benchee, "~> 1.0", only: :dev},
-      {:dialyxir, "~> 0.5", only: :dev},
+      {:dialyxir, "~> 1.0-rc", only: :dev},
       {:ex_doc, "~> 0.20", only: :dev},
       {:excoveralls, "~> 0.11", only: [:dev, :test]}
     ]
