@@ -194,7 +194,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.get/3`.
   """
-  @spec get(t, charlist | binary, t | nil) :: t
+  @spec get(t, charlist | binary, t | nil) :: t | nil
   def get(t, key, default \\ nil)
 
   def get(%__MODULE__{} = t, key, default) do
