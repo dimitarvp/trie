@@ -342,9 +342,7 @@ defmodule Trie do
   @doc ~S"""
   Returns the count of all words (`Trie` nodes that have a non-zero frequency).
   """
-  def word_count(
-        %__MODULE__{frequency: frequency} = t
-      ) do
+  def word_count(%__MODULE__{frequency: frequency} = t) do
     Enum.reduce(
       t.children,
       word_count_by_frequency(frequency),
