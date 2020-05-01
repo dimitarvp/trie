@@ -102,7 +102,8 @@ defmodule Trie do
   Also see `put_word/2`.
   """
   @spec put_words([binary] | [{binary, pos_integer}]) :: t
-  def put_words(texts) when is_list(texts) do
+  def put_words(texts)
+      when is_list(texts) do
     Enum.reduce(texts, %__MODULE__{}, fn
       {text, frequency}, acc when is_binary(text) and is_integer(frequency) ->
         add(acc, text, frequency)
@@ -151,11 +152,7 @@ defmodule Trie do
     add(t, to_charlist(word), frequency)
   end
 
-  def add(
-        %__MODULE__{} = t,
-        [char | rest_chars],
-        frequency
-      )
+  def add(%__MODULE__{} = t, [char | rest_chars], frequency)
       when is_integer(frequency) do
     child = get_or_create_node(t, char)
     child = add(child, rest_chars, frequency)
@@ -163,7 +160,8 @@ defmodule Trie do
     %__MODULE__{t | children: children}
   end
 
-  def add(%__MODULE__{} = t, [], frequency) when is_integer(frequency) do
+  def add(%__MODULE__{} = t, [], frequency)
+      when is_integer(frequency) do
     %__MODULE__{t | frequency: t.frequency + frequency}
   end
 
@@ -173,7 +171,8 @@ defmodule Trie do
   @spec fetch(t, charlist | binary) :: {:ok, t} | :error
   def fetch(t, key)
 
-  def fetch(%__MODULE__{} = t, key) when is_binary(key) do
+  def fetch(%__MODULE__{} = t, key)
+      when is_binary(key) do
     fetch(t, to_charlist(key))
   end
 
@@ -208,7 +207,8 @@ defmodule Trie do
   Implements the callback `c:Access.pop/2`.
   """
   @spec pop(t, charlist | binary) :: {nil | t, t}
-  def pop(%__MODULE__{} = t, key) when is_binary(key) do
+  def pop(%__MODULE__{} = t, key)
+      when is_binary(key) do
     pop(t, to_charlist(key))
   end
 
@@ -258,13 +258,9 @@ defmodule Trie do
          [char],
          old_val,
          %__MODULE__{} = new_val
-       )
+  )
        when is_integer(char) do
-    modified_trie = %__MODULE__{
-      t
-      | children: Map.put(t.children, char, new_val)
-    }
-
+    modified_trie = %__MODULE__{t | children: Map.put(t.children, char, new_val)}
     {old_val, modified_trie}
   end
 
@@ -276,20 +272,9 @@ defmodule Trie do
        )
        when is_integer(char) do
     {_, modified_child} =
-      get_and_update_without_pop(
-        Map.get(
-          t.children,
-          char
-        ),
-        rest_chars,
-        old_val,
-        new_val
-      )
+      get_and_update_without_pop(Map.get(t.children, char), rest_chars, old_val, new_val)
 
-    modified_trie = %__MODULE__{
-      t
-      | children: Map.put(t.children, char, modified_child)
-    }
+    modified_trie = %__MODULE__{t | children: Map.put(t.children, char, modified_child)}
 
     {old_val, modified_trie}
   end
