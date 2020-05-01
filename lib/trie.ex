@@ -258,7 +258,7 @@ defmodule Trie do
          [char],
          old_val,
          %__MODULE__{} = new_val
-  )
+       )
        when is_integer(char) do
     modified_trie = %__MODULE__{t | children: Map.put(t.children, char, new_val)}
     {old_val, modified_trie}
