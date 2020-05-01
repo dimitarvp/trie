@@ -18,6 +18,7 @@ defmodule Trie.Mixfile do
         extras: ["README.md"]
       ],
       deps: deps(),
+      aliases: aliases(),
 
       # dependency: `excoveralls`-specific.
       test_coverage: [tool: ExCoveralls],
@@ -40,6 +41,13 @@ defmodule Trie.Mixfile do
       {:dialyxir, "~> 1.0-rc", only: :dev},
       {:ex_doc, "~> 0.20", only: :dev},
       {:excoveralls, "~> 0.11", only: [:dev, :test]}
+    ]
+  end
+
+  defp aliases do
+    [
+      c: "compile",
+      f: "format"
     ]
   end
 end
