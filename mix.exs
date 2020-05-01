@@ -47,7 +47,8 @@ defmodule Trie.Mixfile do
   defp aliases do
     [
       c: "compile",
-      f: "format"
+      f: "format",
+      lint: "dialyzer"
     ]
   end
 end
