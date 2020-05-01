@@ -63,11 +63,11 @@ defmodule Trie do
   @type key :: char
   @type optional_key :: char | nil
   @type children :: %{required(key) => t} | %{}
-  @type t :: %Trie{
-          key: optional_key,
-          children: children,
-          frequency: non_neg_integer
-        }
+  @opaque t :: %Trie{
+            key: optional_key,
+            children: children,
+            frequency: non_neg_integer
+          }
 
   defstruct key: nil, children: %{}, frequency: 0
 
