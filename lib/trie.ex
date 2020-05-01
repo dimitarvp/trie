@@ -280,29 +280,22 @@ defmodule Trie do
   end
 
   @spec get_words(t, charlist, [binary]) :: [binary]
-  defp get_words(
-         %__MODULE__{
-           frequency: frequency,
-           key: key
-         } = t,
-         word,
-         words
-       ) do
+  defp get_words(%__MODULE__{} = t, word, words) do
     {next_word, next_words} =
-      case frequency do
+      case t.frequency do
         f when f > 0 ->
           new_word =
-            [key | word]
+            [t.key | word]
             |> Enum.reverse()
             |> to_string()
 
-          {[key | word], [new_word | words]}
+          {[t.key | word], [new_word | words]}
 
         _ ->
-          if is_nil(key) do
+          if is_nil(t.key) do
             {word, words}
           else
-            {[key | word], words}
+            {[t.key | word], words}
           end
       end
 
@@ -327,10 +320,10 @@ defmodule Trie do
   @doc ~S"""
   Returns the count of all words (`Trie` nodes that have a non-zero frequency).
   """
-  def word_count(%__MODULE__{frequency: frequency} = t) do
+  def word_count(%__MODULE__{} = t) do
     Enum.reduce(
       t.children,
-      word_count_by_frequency(frequency),
+      word_count_by_frequency(t.frequency),
       fn {_key, child}, total ->
         total + word_count(child)
       end
