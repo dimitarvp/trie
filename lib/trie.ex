@@ -61,8 +61,10 @@ defmodule Trie do
   """
 
   @type key :: char
-  @type optional_key :: char | nil
+  @type optional_key :: key | nil
   @type children :: %{required(key) => t} | %{}
+  @type text :: charlist | String.t()
+  @type freq :: pos_integer
   @opaque t :: %Trie{
             key: optional_key,
             children: children,
@@ -71,20 +73,23 @@ defmodule Trie do
 
   defstruct key: nil, children: %{}, frequency: 0
 
+  defguard is_key(x) when is_integer(x)
+  defguard is_freq(x) when is_integer(x) and x > 0
+
   @doc ~S"""
   Creates a `Trie` and invokes `add/3`.
   Raises `ArgumentError` if there are non-printable characters in the word.
   """
-  @spec put_word(charlist | binary, integer) :: t | no_return
+  @spec put_word(text, freq) :: t | no_return
   def put_word(word, frequency \\ 1)
 
   def put_word(word, frequency)
-      when is_list(word) and is_integer(frequency) do
+      when is_list(word) and is_freq(frequency) do
     put_word(List.to_string(word), frequency)
   end
 
   def put_word(word, frequency)
-      when is_binary(word) and is_integer(frequency) do
+      when is_binary(word) and is_freq(frequency) do
     if not String.printable?(word) do
       raise(ArgumentError, "the parameter must be printable")
     end
@@ -101,11 +106,11 @@ defmodule Trie do
   "word" and "another" will have frequencies of two and five, respectively.
   Also see `put_word/2`.
   """
-  @spec put_words([binary] | [{binary, pos_integer}]) :: t
+  @spec put_words([String.t()] | [{String.t(), pos_integer}]) :: t
   def put_words(texts)
       when is_list(texts) do
     Enum.reduce(texts, %__MODULE__{}, fn
-      {text, frequency}, acc when is_binary(text) and is_integer(frequency) ->
+      {text, frequency}, acc when is_binary(text) and is_freq(frequency) ->
         add(acc, text, frequency)
 
       text, acc when is_binary(text) ->
@@ -115,7 +120,7 @@ defmodule Trie do
 
   @spec get_or_create_node(t, key) :: t
   defp get_or_create_node(%__MODULE__{} = t, key)
-       when is_integer(key) do
+       when is_key(key) do
     t.children
     |> Map.put_new(key, %__MODULE__{key: key})
     |> Map.get(key)
@@ -123,13 +128,13 @@ defmodule Trie do
 
   @spec get_node(t, key) :: t | nil
   defp get_node(%__MODULE__{} = t, key)
-       when is_integer(key) do
+       when is_key(key) do
     Map.get(t.children, key)
   end
 
   @spec fetch_node(t, key) :: {:ok, t} | :error
   defp fetch_node(%__MODULE__{} = t, key)
-       when is_integer(key) do
+       when is_key(key) do
     Map.fetch(t.children, key)
   end
 
@@ -144,16 +149,16 @@ defmodule Trie do
   plus the `Kernel` functions like `Kernel.get_in/2`, `Kernel.put_in/3` and
   friends. Consult the documentation of `Access` for more details.
   """
-  @spec add(t, charlist | binary, integer) :: t
+  @spec add(t, text, integer) :: t
   def add(t, word, frequency \\ 1)
 
   def add(%__MODULE__{} = t, word, frequency)
-      when is_binary(word) and is_integer(frequency) do
+      when is_binary(word) and is_freq(frequency) do
     add(t, to_charlist(word), frequency)
   end
 
   def add(%__MODULE__{} = t, [char | rest_chars], frequency)
-      when is_integer(frequency) do
+      when is_freq(frequency) do
     child = get_or_create_node(t, char)
     child = add(child, rest_chars, frequency)
     children = Map.put(t.children, char, child)
@@ -161,14 +166,14 @@ defmodule Trie do
   end
 
   def add(%__MODULE__{} = t, [], frequency)
-      when is_integer(frequency) do
+      when is_freq(frequency) do
     %__MODULE__{t | frequency: t.frequency + frequency}
   end
 
   @doc ~S"""
   Implements the callback `c:Access.fetch/2`.
   """
-  @spec fetch(t, charlist | binary) :: {:ok, t} | :error
+  @spec fetch(t, text) :: {:ok, t} | :error
   def fetch(t, key)
 
   def fetch(%__MODULE__{} = t, key)
@@ -186,14 +191,14 @@ defmodule Trie do
   def fetch(%__MODULE__{} = t, []), do: {:ok, t}
 
   def fetch(%__MODULE__{} = t, key)
-      when is_integer(key) do
+      when is_key(key) do
     fetch_node(t, key)
   end
 
   @doc ~S"""
   Implements the callback `c:Access.get/3`.
   """
-  @spec get(t, charlist | binary, t | nil) :: t | nil
+  @spec get(t, text, t | nil) :: t | nil
   def get(t, key, default \\ nil)
 
   def get(%__MODULE__{} = t, key, default) do
@@ -206,21 +211,21 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.pop/2`.
   """
-  @spec pop(t, charlist | binary) :: {nil | t, t}
+  @spec pop(t, text) :: {nil | t, t}
   def pop(%__MODULE__{} = t, key)
       when is_binary(key) do
     pop(t, to_charlist(key))
   end
 
   def pop(%__MODULE__{} = t, [char | rest_chars])
-      when is_integer(char) and length(rest_chars) > 0 do
+      when is_key(char) and length(rest_chars) > 0 do
     {popped_trie, modified_trie} = pop(get_node(t, char), rest_chars)
     t = %__MODULE__{t | children: Map.put(t.children, char, modified_trie)}
     {popped_trie, t}
   end
 
   def pop(%__MODULE__{} = t, [char | rest_chars])
-      when is_integer(char) and length(rest_chars) == 0 do
+      when is_key(char) and length(rest_chars) == 0 do
     {popped_trie, modified_children} = Map.pop(t.children, char)
     t = %__MODULE__{t | children: modified_children}
     {popped_trie, t}
@@ -232,7 +237,7 @@ defmodule Trie do
   @doc ~S"""
   Implements the callback `c:Access.get_and_update/3`.
   """
-  @spec get_and_update(t, charlist | binary, (key -> {t, t} | :pop)) :: {t, t}
+  @spec get_and_update(t, text, (key -> {t, t} | :pop)) :: {t, t}
   def get_and_update(t, key, fun)
 
   def get_and_update(%__MODULE__{} = t, key, fun)
@@ -259,7 +264,7 @@ defmodule Trie do
          old_val,
          %__MODULE__{} = new_val
        )
-       when is_integer(char) do
+       when is_key(char) do
     modified_trie = %__MODULE__{t | children: Map.put(t.children, char, new_val)}
     {old_val, modified_trie}
   end
@@ -270,7 +275,7 @@ defmodule Trie do
          old_val,
          %__MODULE__{} = new_val
        )
-       when is_integer(char) do
+       when is_key(char) do
     {_, modified_child} =
       get_and_update_without_pop(Map.get(t.children, char), rest_chars, old_val, new_val)
 
@@ -330,7 +335,7 @@ defmodule Trie do
     )
   end
 
-  @spec search(t, charlist | binary) :: [binary]
+  @spec search(t, text) :: [binary]
 
   @doc ~S"""
   Searches for a prefix and returns a list of word matches.
