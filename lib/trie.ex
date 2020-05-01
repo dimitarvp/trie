@@ -113,23 +113,23 @@ defmodule Trie do
   end
 
   @spec get_or_create_node(t, key) :: t
-  defp get_or_create_node(%__MODULE__{children: %{} = children}, key)
+  defp get_or_create_node(%__MODULE__{} = t, key)
        when is_integer(key) do
-    children
+    t.children
     |> Map.put_new(key, %__MODULE__{key: key})
     |> Map.get(key)
   end
 
   @spec get_node(t, key) :: t | nil
-  defp get_node(%__MODULE__{children: %{} = children}, key)
+  defp get_node(%__MODULE__{} = t, key)
        when is_integer(key) do
-    Map.get(children, key)
+    Map.get(t.children, key)
   end
 
   @spec fetch_node(t, key) :: {:ok, t} | :error
-  defp fetch_node(%__MODULE__{children: %{} = children}, key)
+  defp fetch_node(%__MODULE__{} = t, key)
        when is_integer(key) do
-    Map.fetch(children, key)
+    Map.fetch(t.children, key)
   end
 
   @doc ~S"""
@@ -152,14 +152,14 @@ defmodule Trie do
   end
 
   def add(
-        %__MODULE__{children: %{} = children} = t,
+        %__MODULE__{} = t,
         [char | rest_chars],
         frequency
       )
       when is_integer(frequency) do
     child = get_or_create_node(t, char)
     child = add(child, rest_chars, frequency)
-    children = Map.put(children, char, child)
+    children = Map.put(t.children, char, child)
     %__MODULE__{t | children: children}
   end
 
@@ -212,16 +212,16 @@ defmodule Trie do
     pop(t, to_charlist(key))
   end
 
-  def pop(%__MODULE__{children: %{} = children} = t, [char | rest_chars])
+  def pop(%__MODULE__{} = t, [char | rest_chars])
       when is_integer(char) and length(rest_chars) > 0 do
     {popped_trie, modified_trie} = pop(get_node(t, char), rest_chars)
-    t = %__MODULE__{t | children: Map.put(children, char, modified_trie)}
+    t = %__MODULE__{t | children: Map.put(t.children, char, modified_trie)}
     {popped_trie, t}
   end
 
-  def pop(%__MODULE__{children: %{} = children} = t, [char | rest_chars])
+  def pop(%__MODULE__{} = t, [char | rest_chars])
       when is_integer(char) and length(rest_chars) == 0 do
-    {popped_trie, modified_children} = Map.pop(children, char)
+    {popped_trie, modified_children} = Map.pop(t.children, char)
     t = %__MODULE__{t | children: modified_children}
     {popped_trie, t}
   end
@@ -254,7 +254,7 @@ defmodule Trie do
   @spec get_and_update_without_pop(t, charlist, t | nil, t) :: {t, t}
 
   defp get_and_update_without_pop(
-         %__MODULE__{children: %{} = children} = t,
+         %__MODULE__{} = t,
          [char],
          old_val,
          %__MODULE__{} = new_val
@@ -262,14 +262,14 @@ defmodule Trie do
        when is_integer(char) do
     modified_trie = %__MODULE__{
       t
-      | children: Map.put(children, char, new_val)
+      | children: Map.put(t.children, char, new_val)
     }
 
     {old_val, modified_trie}
   end
 
   defp get_and_update_without_pop(
-         %__MODULE__{children: %{} = children} = t,
+         %__MODULE__{} = t,
          [char | rest_chars],
          old_val,
          %__MODULE__{} = new_val
@@ -278,7 +278,7 @@ defmodule Trie do
     {_, modified_child} =
       get_and_update_without_pop(
         Map.get(
-          children,
+          t.children,
           char
         ),
         rest_chars,
@@ -288,7 +288,7 @@ defmodule Trie do
 
     modified_trie = %__MODULE__{
       t
-      | children: Map.put(children, char, modified_child)
+      | children: Map.put(t.children, char, modified_child)
     }
 
     {old_val, modified_trie}
@@ -297,10 +297,9 @@ defmodule Trie do
   @spec get_words(t, charlist, [binary]) :: [binary]
   defp get_words(
          %__MODULE__{
-           children: %{} = children,
            frequency: frequency,
            key: key
-         },
+         } = t,
          word,
          words
        ) do
@@ -322,7 +321,7 @@ defmodule Trie do
           end
       end
 
-    Enum.reduce(children, next_words, fn {_key, trie}, acc ->
+    Enum.reduce(t.children, next_words, fn {_key, trie}, acc ->
       get_words(trie, next_word, acc)
     end)
   end
@@ -344,10 +343,10 @@ defmodule Trie do
   Returns the count of all words (`Trie` nodes that have a non-zero frequency).
   """
   def word_count(
-        %__MODULE__{children: %{} = children, frequency: frequency} = _t
+        %__MODULE__{frequency: frequency} = t
       ) do
     Enum.reduce(
-      children,
+      t.children,
       word_count_by_frequency(frequency),
       fn {_key, child}, total ->
         total + word_count(child)
